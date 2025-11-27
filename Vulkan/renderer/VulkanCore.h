@@ -2,6 +2,7 @@
 #include "../utils/Logger.h"
 #include "VulkanSwapchain.h"
 #include "VulkanPipeline.h"
+#include "evPhysicalDevice.h"
 
 namespace evoke::vulkan {
     class VulkanCore{
@@ -11,21 +12,13 @@ namespace evoke::vulkan {
         
         void draw_frame();
         
-        const SwapchainSupportDetails& get_swapchain_support() const { return m_swapchain_support; }
         const VkDevice get_device() const {return m_device;}
         
     private:
         VkInstance m_instance;
         VkSurfaceKHR m_surface;
-        VkPhysicalDevice m_physical_device = VK_NULL_HANDLE;
+        evPhysicalDevice ev_physical_device;
         VkDevice m_device;
-        
-        QueueFamilyIndices m_indices;
-        SwapchainSupportDetails m_swapchain_support;
-        
-        const std::vector<const char*> m_device_extensions = {
-            VK_KHR_SWAPCHAIN_EXTENSION_NAME
-        };
         
         VkQueue m_graphics_queue;
         VkQueue m_present_queue;
@@ -51,7 +44,6 @@ namespace evoke::vulkan {
         
         void create_instance();
         void create_surface(GLFWwindow* window);
-        void pick_physical_device();
         void create_logical_device();
         
         void create_command_pool();
@@ -77,10 +69,5 @@ namespace evoke::vulkan {
             VkPipelineStageFlags2 src_stage_mask,
             VkPipelineStageFlags2 dst_stage_mask
                                      );
-        
-        bool is_device_suitable(VkPhysicalDevice physical_device);
-        bool does_device_support_extensions(VkPhysicalDevice physical_device);
-        QueueFamilyIndices find_queue_families(VkPhysicalDevice physical_device, VkSurfaceKHR surface);
-        SwapchainSupportDetails query_swapchain_support(VkPhysicalDevice physical_device);
     };
 }

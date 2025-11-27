@@ -2,17 +2,17 @@
 #include <iostream>
 
 namespace evoke::vulkan {
-    void VulkanSwapchain::create_swapchain(const SwapchainSupportDetails& swapchain_support, VkSurfaceKHR surface, QueueFamilyIndices indices, VkDevice device){
+    void VulkanSwapchain::create_swapchain(evPhysicalDevice& physical_device, VkSurfaceKHR surface, VkDevice device){
         utils::Logger::info("Creating swapchain!");
         
-        VkSurfaceFormatKHR surface_format = choose_swapchain_surface_format(swapchain_support.formats);
-        VkPresentModeKHR present_mode = choose_swap_present_mode(swapchain_support.present_modes);
-        VkExtent2D extent = choose_swap_extent(swapchain_support.capabilities);
+        VkSurfaceFormatKHR surface_format = choose_swapchain_surface_format(physical_device.get().swapchain_support.formats);
+        VkPresentModeKHR present_mode = choose_swap_present_mode(physical_device.get().swapchain_support.present_modes);
+        VkExtent2D extent = choose_swap_extent(physical_device.get().swapchain_support.capabilities);
         
-        uint32_t image_count = swapchain_support.capabilities.minImageCount + 1;
+        uint32_t image_count = physical_device.get().swapchain_support.capabilities.minImageCount + 1;
         
-        if (swapchain_support.capabilities.maxImageCount > 0 && image_count > swapchain_support.capabilities.maxImageCount) {
-            image_count = swapchain_support.capabilities.maxImageCount;
+        if (physical_device.get().swapchain_support.capabilities.maxImageCount > 0 && image_count > physical_device.get().swapchain_support.capabilities.maxImageCount) {
+            image_count = physical_device.get().swapchain_support.capabilities.maxImageCount;
         }
         
         VkSwapchainCreateInfoKHR createInfo{};
@@ -25,9 +25,9 @@ namespace evoke::vulkan {
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
         
-        uint32_t queue_family_indices[] = {indices.graphics_family.value(), indices.present_family.value()};
+        uint32_t queue_family_indices[] = {physical_device.get().queue_family_indices.graphics_family.value(), physical_device.get().queue_family_indices.present_family.value()};
 
-        if (indices.graphics_family != indices.present_family) {
+        if (physical_device.get().queue_family_indices.graphics_family != physical_device.get().queue_family_indices.present_family) {
             createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
             createInfo.queueFamilyIndexCount = 2;
             createInfo.pQueueFamilyIndices = queue_family_indices;
@@ -37,7 +37,7 @@ namespace evoke::vulkan {
             createInfo.pQueueFamilyIndices = nullptr; // Optional
         }
         
-        createInfo.preTransform = swapchain_support.capabilities.currentTransform;
+        createInfo.preTransform = physical_device.get().swapchain_support.capabilities.currentTransform;
         createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
         createInfo.presentMode = present_mode;
         createInfo.clipped = VK_TRUE;

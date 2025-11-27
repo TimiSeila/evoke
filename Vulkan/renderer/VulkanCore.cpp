@@ -6,8 +6,7 @@ namespace evoke::vulkan {
     void VulkanCore::init_vulkan(GLFWwindow *window){
         create_instance();
         create_surface(window);
-        pick_physical_device();
-        m_indices = find_queue_families(m_physical_device, m_surface);
+        ev_physical_device.init(m_instance, m_surface);
         create_logical_device();
         
         create_command_pool();
@@ -16,8 +15,7 @@ namespace evoke::vulkan {
         create_sync_objects();
         create_command_buffer();
         
-        m_swapchain_support = query_swapchain_support(m_physical_device);
-        m_vulkan_swapchain.create_swapchain(m_swapchain_support, m_surface, m_indices, m_device);
+        m_vulkan_swapchain.create_swapchain(ev_physical_device, m_surface, m_device);
         m_pipeline.create_pipeline(m_device, m_vulkan_swapchain);
     }
     
@@ -108,42 +106,11 @@ namespace evoke::vulkan {
         utils::Logger::info("Surface created successfully!");
     }
     
-    void VulkanCore::pick_physical_device(){
-        utils::Logger::info("Selecting GPU!");
-        uint32_t device_count = 0;
-        vkEnumeratePhysicalDevices(m_instance, &device_count, nullptr);
-        
-        if (device_count == 0){
-            utils::Logger::error("Failed to find suitable GPUs!");
-        }
-        
-        std::vector<VkPhysicalDevice> physical_devices(device_count);
-        vkEnumeratePhysicalDevices(m_instance, &device_count, physical_devices.data());
-        
-        for (const auto& physical_device : physical_devices) {
-            if(is_device_suitable(physical_device)){
-                m_physical_device = physical_device;
-                break;
-            }
-        }
-        
-        if (m_physical_device == VK_NULL_HANDLE) {
-            utils::Logger::error("Failed to find a suitable GPU!");
-        }
-        
-        VkPhysicalDeviceProperties deviceProperties;
-        vkGetPhysicalDeviceProperties(m_physical_device, &deviceProperties);
-        
-        utils::Logger::info("Device Name: ", deviceProperties.deviceName);
-        
-        utils::Logger::info("GPU selected successfully!");
-    }
-    
     void VulkanCore::create_command_pool(){
         VkCommandPoolCreateInfo pool_info{};
         pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        pool_info.queueFamilyIndex = m_indices.graphics_family.value();
+        pool_info.queueFamilyIndex = ev_physical_device.get().queue_family_indices.graphics_family.value();
         
         if (vkCreateCommandPool(m_device, &pool_info, nullptr, &m_command_pool) != VK_SUCCESS) {
             throw std::runtime_error("failed to create command pool!");
@@ -274,7 +241,7 @@ namespace evoke::vulkan {
     
     uint32_t VulkanCore::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
         VkPhysicalDeviceMemoryProperties memProperties;
-        vkGetPhysicalDeviceMemoryProperties(m_physical_device, &memProperties);
+        vkGetPhysicalDeviceMemoryProperties(ev_physical_device.get().handle, &memProperties);
 
         for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
             if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
@@ -460,98 +427,11 @@ namespace evoke::vulkan {
         m_current_frame = (m_current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
     
-    bool VulkanCore::is_device_suitable(VkPhysicalDevice physical_device){
-        QueueFamilyIndices indices = find_queue_families(physical_device, m_surface);
-        
-        bool extensions_supported = does_device_support_extensions(physical_device);
-        
-        bool swapchain_adequate = false;
-        if (extensions_supported) {
-            SwapchainSupportDetails swapchain_support = query_swapchain_support(physical_device);
-            swapchain_adequate = !swapchain_support.formats.empty() && !swapchain_support.present_modes.empty();
-        }
-
-        return indices.is_complete() && extensions_supported && swapchain_adequate;
-    }
-    
-    bool VulkanCore::does_device_support_extensions(VkPhysicalDevice physical_device) {
-        uint32_t extension_count;
-        vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extension_count, nullptr);
-
-        std::vector<VkExtensionProperties> available_extensions(extension_count);
-        vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extension_count, available_extensions.data());
-
-        std::set<std::string> requiredExtensions(m_device_extensions.begin(), m_device_extensions.end());
-
-        for (const auto& extension : available_extensions) {
-            requiredExtensions.erase(extension.extensionName);
-        }
-
-        return requiredExtensions.empty();
-    }
-    
-    QueueFamilyIndices VulkanCore::find_queue_families(VkPhysicalDevice physical_device, VkSurfaceKHR surface){
-        QueueFamilyIndices indices;
-
-            uint32_t queue_family_count = 0;
-            vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, nullptr);
-
-            std::vector<VkQueueFamilyProperties> queue_families(queue_family_count);
-            vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, queue_families.data());
-
-            int i = 0;
-            for (const auto& queue_family : queue_families) {
-                if (queue_family.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-                    indices.graphics_family = i;
-                }
-                
-                VkBool32 present_support = false;
-                vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, surface, &present_support);
-                
-                if (present_support) {
-                    indices.present_family = i;
-                }
-                
-                if (indices.is_complete()) {
-                        break;
-                    }
-
-                i++;
-            }
-        
-        return indices;
-    }
-    
-    SwapchainSupportDetails VulkanCore::query_swapchain_support(VkPhysicalDevice physical_device){
-        SwapchainSupportDetails details;
-
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, m_surface, &details.capabilities);
-        
-        uint32_t format_count;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, m_surface, &format_count, nullptr);
-
-        if (format_count != 0) {
-            details.formats.resize(format_count);
-            vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, m_surface, &format_count, details.formats.data());
-        }
-        
-        uint32_t present_mode_count;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, m_surface, &present_mode_count, nullptr);
-
-        if (present_mode_count != 0) {
-            details.present_modes.resize(present_mode_count);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, m_surface, &present_mode_count, details.present_modes.data());
-        }
-        
-        return details;
-    }
-    
     void VulkanCore::create_logical_device(){
         utils::Logger::info("Creating logical device!");
-        QueueFamilyIndices indices = find_queue_families(m_physical_device, m_surface);
 
         std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
-        std::set<uint32_t> unique_queue_families = {indices.graphics_family.value(), indices.present_family.value()};
+        std::set<uint32_t> unique_queue_families = {ev_physical_device.get().queue_family_indices.graphics_family.value(), ev_physical_device.get().queue_family_indices.present_family.value()};
         
         float queue_priority = 1.0f;
         for (uint32_t queue_family : unique_queue_families) {
@@ -569,15 +449,15 @@ namespace evoke::vulkan {
         create_info.queueCreateInfoCount = static_cast<uint32_t>(queue_create_infos.size());
         create_info.pQueueCreateInfos = queue_create_infos.data();
         create_info.pEnabledFeatures = &device_features;
-        create_info.enabledExtensionCount = static_cast<uint32_t>(m_device_extensions.size());
-        create_info.ppEnabledExtensionNames = m_device_extensions.data();
+        create_info.enabledExtensionCount = static_cast<uint32_t>(ev_physical_device.get().extensions_info.extensions.size());
+        create_info.ppEnabledExtensionNames = ev_physical_device.get().extensions_info.extensions.data();
         
-        if(vkCreateDevice(m_physical_device, &create_info, nullptr, &m_device) != VK_SUCCESS){
+        if(vkCreateDevice(ev_physical_device.get().handle, &create_info, nullptr, &m_device) != VK_SUCCESS){
             utils::Logger::error("Failed to create logical device!");
         }
         
-        vkGetDeviceQueue(m_device, indices.graphics_family.value(), 0, &m_graphics_queue);
-        vkGetDeviceQueue(m_device, indices.present_family.value(), 0, &m_present_queue);
+        vkGetDeviceQueue(m_device, ev_physical_device.get().queue_family_indices.graphics_family.value(), 0, &m_graphics_queue);
+        vkGetDeviceQueue(m_device, ev_physical_device.get().queue_family_indices.present_family.value(), 0, &m_present_queue);
         
         utils::Logger::info("Logical device created successfully!");
     }

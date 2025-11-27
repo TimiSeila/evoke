@@ -8,11 +8,12 @@
 
 #include "../utils/VulkanUtils.h"
 #include "../core/Window.h"
+#include "evPhysicalDevice.h"
 
 namespace evoke::vulkan {
     class VulkanSwapchain{
     public:
-        void create_swapchain(const SwapchainSupportDetails& swapchain_support, VkSurfaceKHR surface, QueueFamilyIndices indices, VkDevice device);
+        void create_swapchain(evPhysicalDevice& physical_device, VkSurfaceKHR surface, VkDevice device);
         
         VkSwapchainKHR get_swapchain() const {return m_swapchain;}
         std::vector<VkImage> get_vulkan_swapchain_images() const {return m_swapchain_images;};
