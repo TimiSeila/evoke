@@ -54,6 +54,7 @@ struct evPhysicalDeviceInfo {
 class evPhysicalDevice {
 public:
     void init(VkInstance instance, VkSurfaceKHR surface);
+    
     const evPhysicalDeviceInfo& get() const { return physical_device_info; }
     
 private:

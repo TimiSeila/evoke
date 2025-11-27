@@ -3,6 +3,7 @@
 #include "VulkanSwapchain.h"
 #include "VulkanPipeline.h"
 #include "evPhysicalDevice.h"
+#include "evDevice.h"
 
 namespace evoke::vulkan {
     class VulkanCore{
@@ -12,16 +13,13 @@ namespace evoke::vulkan {
         
         void draw_frame();
         
-        const VkDevice get_device() const {return m_device;}
+        const VkDevice get_device() const {return ev_device.get().handle;}
         
     private:
         VkInstance m_instance;
         VkSurfaceKHR m_surface;
         evPhysicalDevice ev_physical_device;
-        VkDevice m_device;
-        
-        VkQueue m_graphics_queue;
-        VkQueue m_present_queue;
+        evDevice ev_device;
         
         VulkanSwapchain m_vulkan_swapchain;
         Pipeline m_pipeline;
@@ -44,7 +42,6 @@ namespace evoke::vulkan {
         
         void create_instance();
         void create_surface(GLFWwindow* window);
-        void create_logical_device();
         
         void create_command_pool();
         void create_command_buffer();

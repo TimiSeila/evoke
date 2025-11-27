@@ -7,7 +7,7 @@ namespace evoke::vulkan {
         create_instance();
         create_surface(window);
         ev_physical_device.init(m_instance, m_surface);
-        create_logical_device();
+        ev_device.init(ev_physical_device);
         
         create_command_pool();
         create_vertex_buffer();
@@ -15,39 +15,39 @@ namespace evoke::vulkan {
         create_sync_objects();
         create_command_buffer();
         
-        m_vulkan_swapchain.create_swapchain(ev_physical_device, m_surface, m_device);
-        m_pipeline.create_pipeline(m_device, m_vulkan_swapchain);
+        m_vulkan_swapchain.create_swapchain(ev_physical_device, m_surface, ev_device.get().handle);
+        m_pipeline.create_pipeline(ev_device.get().handle, m_vulkan_swapchain);
     }
     
     void VulkanCore::clean_up(){
-        if (m_device != VK_NULL_HANDLE) {
-                vkDeviceWaitIdle(m_device);
+        if (ev_device.get().handle != VK_NULL_HANDLE) {
+                vkDeviceWaitIdle(ev_device.get().handle);
             }
         
         utils::Logger::info("Cleaning up semaphores and fences!");
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-                vkDestroySemaphore(m_device, m_render_finished_semaphores[i], nullptr);
-                vkDestroySemaphore(m_device, m_image_available_semaphores[i], nullptr);
-                vkDestroyFence(m_device, m_in_flight_fences[i], nullptr);
+                vkDestroySemaphore(ev_device.get().handle, m_render_finished_semaphores[i], nullptr);
+                vkDestroySemaphore(ev_device.get().handle, m_image_available_semaphores[i], nullptr);
+                vkDestroyFence(ev_device.get().handle, m_in_flight_fences[i], nullptr);
             }
         utils::Logger::info("Semaphores and fences cleaned up successfully!");
         
         utils::Logger::info("Cleaning up command pool!");
-        vkDestroyCommandPool(m_device, m_command_pool, nullptr);
+        vkDestroyCommandPool(ev_device.get().handle, m_command_pool, nullptr);
         utils::Logger::info("Command pool cleaned up successfully!");
         
-        m_pipeline.clean_up(m_device);
+        m_pipeline.clean_up(ev_device.get().handle);
         
-        m_vulkan_swapchain.clean_up(m_device);
+        m_vulkan_swapchain.clean_up(ev_device.get().handle);
         
-        vkDestroyBuffer(m_device, m_index_buffer, nullptr);
-        vkFreeMemory(m_device, m_index_buffer_memory, nullptr);
+        vkDestroyBuffer(ev_device.get().handle, m_index_buffer, nullptr);
+        vkFreeMemory(ev_device.get().handle, m_index_buffer_memory, nullptr);
         
-        vkDestroyBuffer(m_device, m_vertex_buffer, nullptr);
-        vkFreeMemory(m_device, m_vertex_buffer_memory, nullptr);
+        vkDestroyBuffer(ev_device.get().handle, m_vertex_buffer, nullptr);
+        vkFreeMemory(ev_device.get().handle, m_vertex_buffer_memory, nullptr);
         
         utils::Logger::info("Cleaning up logical device!");
-        vkDestroyDevice(m_device, nullptr);
+        ev_device.clean_up();
         utils::Logger::info("Logical device cleaned up successfully!");
         
         utils::Logger::info("Cleaning up surface!");
@@ -112,7 +112,7 @@ namespace evoke::vulkan {
         pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         pool_info.queueFamilyIndex = ev_physical_device.get().queue_family_indices.graphics_family.value();
         
-        if (vkCreateCommandPool(m_device, &pool_info, nullptr, &m_command_pool) != VK_SUCCESS) {
+        if (vkCreateCommandPool(ev_device.get().handle, &pool_info, nullptr, &m_command_pool) != VK_SUCCESS) {
             throw std::runtime_error("failed to create command pool!");
         }
     }
@@ -126,7 +126,7 @@ namespace evoke::vulkan {
         allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocate_info.commandBufferCount = (uint32_t) m_command_buffers.size();
 
-        if (vkAllocateCommandBuffers(m_device, &allocate_info, m_command_buffers.data()) != VK_SUCCESS) {
+        if (vkAllocateCommandBuffers(ev_device.get().handle, &allocate_info, m_command_buffers.data()) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate command buffers!");
         }
     }
@@ -227,16 +227,16 @@ namespace evoke::vulkan {
         createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
         void* data;
-        vkMapMemory(m_device, stagingBufferMemory, 0, bufferSize, 0, &data);
+        vkMapMemory(ev_device.get().handle, stagingBufferMemory, 0, bufferSize, 0, &data);
             memcpy(data, vertices.data(), (size_t) bufferSize);
-        vkUnmapMemory(m_device, stagingBufferMemory);
+        vkUnmapMemory(ev_device.get().handle, stagingBufferMemory);
 
         createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_vertex_buffer, m_vertex_buffer_memory);
         
         copyBuffer(stagingBuffer, m_vertex_buffer, bufferSize);
 
-        vkDestroyBuffer(m_device, stagingBuffer, nullptr);
-        vkFreeMemory(m_device, stagingBufferMemory, nullptr);
+        vkDestroyBuffer(ev_device.get().handle, stagingBuffer, nullptr);
+        vkFreeMemory(ev_device.get().handle, stagingBufferMemory, nullptr);
     }
     
     uint32_t VulkanCore::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
@@ -260,16 +260,16 @@ namespace evoke::vulkan {
         createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
         void* data;
-        vkMapMemory(m_device, stagingBufferMemory, 0, bufferSize, 0, &data);
+        vkMapMemory(ev_device.get().handle, stagingBufferMemory, 0, bufferSize, 0, &data);
         memcpy(data, indices.data(), (size_t) bufferSize);
-        vkUnmapMemory(m_device, stagingBufferMemory);
+        vkUnmapMemory(ev_device.get().handle, stagingBufferMemory);
 
         createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_index_buffer, m_index_buffer_memory);
 
         copyBuffer(stagingBuffer, m_index_buffer, bufferSize);
 
-        vkDestroyBuffer(m_device, stagingBuffer, nullptr);
-        vkFreeMemory(m_device, stagingBufferMemory, nullptr);
+        vkDestroyBuffer(ev_device.get().handle, stagingBuffer, nullptr);
+        vkFreeMemory(ev_device.get().handle, stagingBufferMemory, nullptr);
     }
     
     void VulkanCore::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
@@ -279,23 +279,23 @@ namespace evoke::vulkan {
         bufferInfo.usage = usage;
         bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-        if (vkCreateBuffer(m_device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
+        if (vkCreateBuffer(ev_device.get().handle, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
             throw std::runtime_error("failed to create buffer!");
         }
 
         VkMemoryRequirements memRequirements;
-        vkGetBufferMemoryRequirements(m_device, buffer, &memRequirements);
+        vkGetBufferMemoryRequirements(ev_device.get().handle, buffer, &memRequirements);
 
         VkMemoryAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         allocInfo.allocationSize = memRequirements.size;
         allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
 
-        if (vkAllocateMemory(m_device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
+        if (vkAllocateMemory(ev_device.get().handle, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate buffer memory!");
         }
 
-        vkBindBufferMemory(m_device, buffer, bufferMemory, 0);
+        vkBindBufferMemory(ev_device.get().handle, buffer, bufferMemory, 0);
     }
     
     void VulkanCore::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
@@ -306,7 +306,7 @@ namespace evoke::vulkan {
         allocInfo.commandBufferCount = 1;
 
         VkCommandBuffer commandBuffer;
-        vkAllocateCommandBuffers(m_device, &allocInfo, &commandBuffer);
+        vkAllocateCommandBuffers(ev_device.get().handle, &allocInfo, &commandBuffer);
 
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -325,10 +325,10 @@ namespace evoke::vulkan {
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &commandBuffer;
 
-        vkQueueSubmit(m_graphics_queue, 1, &submitInfo, VK_NULL_HANDLE);
-        vkQueueWaitIdle(m_graphics_queue);
+        vkQueueSubmit(ev_device.get().graphics_queue, 1, &submitInfo, VK_NULL_HANDLE);
+        vkQueueWaitIdle(ev_device.get().graphics_queue);
 
-        vkFreeCommandBuffers(m_device, m_command_pool, 1, &commandBuffer);
+        vkFreeCommandBuffers(ev_device.get().handle, m_command_pool, 1, &commandBuffer);
     }
     
     void VulkanCore::transition_image_layout(VkCommandBuffer command_buffer, uint32_t image_index, VkImageLayout old_layout, VkImageLayout new_layout, VkAccessFlags2 src_access_mask, VkAccessFlags2 dst_access_mask, VkPipelineStageFlags2 src_stage_mask, VkPipelineStageFlags2 dst_stage_mask){
@@ -373,20 +373,20 @@ namespace evoke::vulkan {
         fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
         
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            if (vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_image_available_semaphores[i]) != VK_SUCCESS ||
-                vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_render_finished_semaphores[i]) != VK_SUCCESS ||
-                vkCreateFence(m_device, &fence_info, nullptr, &m_in_flight_fences[i]) != VK_SUCCESS) {
+            if (vkCreateSemaphore(ev_device.get().handle, &semaphoreInfo, nullptr, &m_image_available_semaphores[i]) != VK_SUCCESS ||
+                vkCreateSemaphore(ev_device.get().handle, &semaphoreInfo, nullptr, &m_render_finished_semaphores[i]) != VK_SUCCESS ||
+                vkCreateFence(ev_device.get().handle, &fence_info, nullptr, &m_in_flight_fences[i]) != VK_SUCCESS) {
                 throw std::runtime_error("failed to create synchronization objects for a frame!");
             }
         }
     }
     
     void VulkanCore::draw_frame(){
-        vkWaitForFences(m_device, 1, &m_in_flight_fences[m_current_frame], VK_TRUE, UINT64_MAX);
-        vkResetFences(m_device, 1, &m_in_flight_fences[m_current_frame]);
+        vkWaitForFences(ev_device.get().handle, 1, &m_in_flight_fences[m_current_frame], VK_TRUE, UINT64_MAX);
+        vkResetFences(ev_device.get().handle, 1, &m_in_flight_fences[m_current_frame]);
         
         uint32_t image_index;
-        vkAcquireNextImageKHR(m_device, m_vulkan_swapchain.get_swapchain(), UINT64_MAX, m_image_available_semaphores[m_current_frame], VK_NULL_HANDLE, &image_index);
+        vkAcquireNextImageKHR(ev_device.get().handle, m_vulkan_swapchain.get_swapchain(), UINT64_MAX, m_image_available_semaphores[m_current_frame], VK_NULL_HANDLE, &image_index);
         
         vkResetCommandBuffer(m_command_buffers[m_current_frame], 0);
         record_command_buffer(m_command_buffers[m_current_frame], image_index);
@@ -407,7 +407,7 @@ namespace evoke::vulkan {
         submit_info.signalSemaphoreCount = 1;
         submit_info.pSignalSemaphores = signal_semaphores;
         
-        if (vkQueueSubmit(m_graphics_queue, 1, &submit_info, m_in_flight_fences[m_current_frame]) != VK_SUCCESS) {
+        if (vkQueueSubmit(ev_device.get().graphics_queue, 1, &submit_info, m_in_flight_fences[m_current_frame]) != VK_SUCCESS) {
             throw std::runtime_error("failed to submit draw command buffer!");
         }
         
@@ -422,43 +422,8 @@ namespace evoke::vulkan {
         presentInfo.pSwapchains = swapchains;
         presentInfo.pImageIndices = &image_index;
                 
-        vkQueuePresentKHR(m_present_queue, &presentInfo);
+        vkQueuePresentKHR(ev_device.get().presentation_queue, &presentInfo);
         
         m_current_frame = (m_current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
-    }
-    
-    void VulkanCore::create_logical_device(){
-        utils::Logger::info("Creating logical device!");
-
-        std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
-        std::set<uint32_t> unique_queue_families = {ev_physical_device.get().queue_family_indices.graphics_family.value(), ev_physical_device.get().queue_family_indices.present_family.value()};
-        
-        float queue_priority = 1.0f;
-        for (uint32_t queue_family : unique_queue_families) {
-            VkDeviceQueueCreateInfo queue_create_info{};
-            queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-            queue_create_info.queueFamilyIndex = queue_family;
-            queue_create_info.queueCount = 1;
-            queue_create_info.pQueuePriorities = &queue_priority;
-            queue_create_infos.push_back(queue_create_info);
-        }
-        
-        VkPhysicalDeviceFeatures device_features{};
-        VkDeviceCreateInfo create_info{};
-        create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        create_info.queueCreateInfoCount = static_cast<uint32_t>(queue_create_infos.size());
-        create_info.pQueueCreateInfos = queue_create_infos.data();
-        create_info.pEnabledFeatures = &device_features;
-        create_info.enabledExtensionCount = static_cast<uint32_t>(ev_physical_device.get().extensions_info.extensions.size());
-        create_info.ppEnabledExtensionNames = ev_physical_device.get().extensions_info.extensions.data();
-        
-        if(vkCreateDevice(ev_physical_device.get().handle, &create_info, nullptr, &m_device) != VK_SUCCESS){
-            utils::Logger::error("Failed to create logical device!");
-        }
-        
-        vkGetDeviceQueue(m_device, ev_physical_device.get().queue_family_indices.graphics_family.value(), 0, &m_graphics_queue);
-        vkGetDeviceQueue(m_device, ev_physical_device.get().queue_family_indices.present_family.value(), 0, &m_present_queue);
-        
-        utils::Logger::info("Logical device created successfully!");
     }
 }
