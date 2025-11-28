@@ -1,0 +1,19 @@
+ninja_dyndep_version = 1.0
+build CMakeFiles/Evoke.dir/src/core/Application.cpp.obj: dyndep
+
+build CMakeFiles/Evoke.dir/src/core/Window.cpp.obj: dyndep
+
+build CMakeFiles/Evoke.dir/src/main.cpp.obj: dyndep
+
+build CMakeFiles/Evoke.dir/src/renderer/VulkaPipeline.cpp.obj: dyndep
+
+build CMakeFiles/Evoke.dir/src/renderer/VulkanCore.cpp.obj: dyndep
+
+build CMakeFiles/Evoke.dir/src/renderer/evDevice.cpp.obj: dyndep
+
+build CMakeFiles/Evoke.dir/src/renderer/evPhysicalDevice.cpp.obj: dyndep
+
+build CMakeFiles/Evoke.dir/src/renderer/evSwapchain.cpp.obj: dyndep
+
+build CMakeFiles/Evoke.dir/src/shapes/Vertex.cpp.obj: dyndep
+

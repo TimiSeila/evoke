@@ -1,0 +1,11 @@
+{
+"rules": [
+{
+"primary-output": "CMakeFiles/Evoke.dir/src/core/Application.cpp.o",
+"requires": [
+]
+}
+],
+"version": 0,
+"revision": 0
+}

@@ -1,0 +1,10 @@
+{
+	"InstallScripts" : 
+	[
+		"C:/Users/timis/Desktop/Evoke/build/cmake_install.cmake",
+		"C:/Users/timis/Desktop/Evoke/build/external/glfw/cmake_install.cmake",
+		"C:/Users/timis/Desktop/Evoke/build/external/glfw/src/cmake_install.cmake",
+		"C:/Users/timis/Desktop/Evoke/build/external/glfw/docs/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

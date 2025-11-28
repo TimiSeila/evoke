@@ -1,0 +1,11 @@
+{
+"rules": [
+{
+"primary-output": "CMakeFiles/Evoke.dir/src/shapes/Vertex.cpp.o",
+"requires": [
+]
+}
+],
+"version": 0,
+"revision": 0
+}

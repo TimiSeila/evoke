@@ -1,0 +1,73 @@
+{
+	"bmi-installation" : null,
+	"compiler-frontend-variant" : "GNU",
+	"compiler-id" : "GNU",
+	"compiler-simulate-id" : "",
+	"config" : "",
+	"cxx-modules" : {},
+	"database-info" : null,
+	"dir-cur-bld" : "C:/Users/timis/Desktop/Evoke/build",
+	"dir-cur-src" : "C:/Users/timis/Desktop/Evoke",
+	"dir-top-bld" : "C:/Users/timis/Desktop/Evoke/build",
+	"dir-top-src" : "C:/Users/timis/Desktop/Evoke",
+	"exports" : [],
+	"forward-modules-from-target-dirs" : [],
+	"include-dirs" : 
+	[
+		"C:\\VulkanSDK\\1.4.328.1\\Include",
+		"C:\\Users\\timis\\Desktop\\Evoke\\external\\glfw\\include",
+		"C:\\Users\\timis\\Desktop\\Evoke",
+		"C:\\Users\\timis\\Desktop\\Evoke\\external\\glm"
+	],
+	"language" : "CXX",
+	"linked-target-dirs" : [],
+	"module-dir" : "C:/Users/timis/Desktop/Evoke/build/CMakeFiles/Evoke.dir",
+	"sources" : 
+	{
+		"CMakeFiles/Evoke.dir/src/core/Application.cpp.obj" : 
+		{
+			"language" : "CXX",
+			"source" : "C:/Users/timis/Desktop/Evoke/src/core/Application.cpp"
+		},
+		"CMakeFiles/Evoke.dir/src/core/Window.cpp.obj" : 
+		{
+			"language" : "CXX",
+			"source" : "C:/Users/timis/Desktop/Evoke/src/core/Window.cpp"
+		},
+		"CMakeFiles/Evoke.dir/src/main.cpp.obj" : 
+		{
+			"language" : "CXX",
+			"source" : "C:/Users/timis/Desktop/Evoke/src/main.cpp"
+		},
+		"CMakeFiles/Evoke.dir/src/renderer/VulkaPipeline.cpp.obj" : 
+		{
+			"language" : "CXX",
+			"source" : "C:/Users/timis/Desktop/Evoke/src/renderer/VulkaPipeline.cpp"
+		},
+		"CMakeFiles/Evoke.dir/src/renderer/VulkanCore.cpp.obj" : 
+		{
+			"language" : "CXX",
+			"source" : "C:/Users/timis/Desktop/Evoke/src/renderer/VulkanCore.cpp"
+		},
+		"CMakeFiles/Evoke.dir/src/renderer/evDevice.cpp.obj" : 
+		{
+			"language" : "CXX",
+			"source" : "C:/Users/timis/Desktop/Evoke/src/renderer/evDevice.cpp"
+		},
+		"CMakeFiles/Evoke.dir/src/renderer/evPhysicalDevice.cpp.obj" : 
+		{
+			"language" : "CXX",
+			"source" : "C:/Users/timis/Desktop/Evoke/src/renderer/evPhysicalDevice.cpp"
+		},
+		"CMakeFiles/Evoke.dir/src/renderer/evSwapchain.cpp.obj" : 
+		{
+			"language" : "CXX",
+			"source" : "C:/Users/timis/Desktop/Evoke/src/renderer/evSwapchain.cpp"
+		},
+		"CMakeFiles/Evoke.dir/src/shapes/Vertex.cpp.obj" : 
+		{
+			"language" : "CXX",
+			"source" : "C:/Users/timis/Desktop/Evoke/src/shapes/Vertex.cpp"
+		}
+	}
+}
